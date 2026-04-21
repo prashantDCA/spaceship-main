@@ -1,0 +1,769 @@
+# Client Management Feature - Product Requirements Document
+## Anya Segen Knowledge Management System
+
+**Version**: 1.0  
+**Date**: January 2025  
+**Feature**: Client Management Module  
+**Integration**: Next.js 15 + Supabase + TypeScript
+
+---
+
+## 1. Executive Summary
+
+The Client Management feature will extend the existing Anya Segen platform to handle comprehensive client (politician/corporate) information management. This module will integrate seamlessly with the current role-based authentication system and follow the established architectural patterns.
+
+### Core Objectives
+- Centralized client information repository
+- Role-based access to client data
+- Department-wise client assignment
+- Comprehensive client profiles with political/corporate categorization
+- Activity tracking and relationship management
+
+---
+
+## 2. Technical Context
+
+### Existing Architecture Alignment
+```typescript
+// Follows existing patterns from:
+- Authentication: lib/auth.tsx (useAuth hook)
+- Database: lib/supabase.ts (Supabase client)
+- Components: components/ui/* (shadcn/ui patterns)
+- Routing: app/dashboard/* (App Router structure)
+```
+
+### Design System Consistency
+- **Theme**: Dark theme with existing color palette
+- **Components**: Extends current shadcn/ui component library
+- **Patterns**: Compound components, forwarded refs, CVA variants
+
+---
+
+## 3. Data Model
+
+### 3.1 Database Schema Extensions
+
+```sql
+-- Client Types Enum
+CREATE TYPE client_type AS ENUM ('politician', 'corporate', 'ngo', 'government_body');
+CREATE TYPE client_status AS ENUM ('active', 'inactive', 'prospect', 'archived');
+
+-- Main Clients Table
+CREATE TABLE clients (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    client_type client_type NOT NULL,
+    status client_status DEFAULT 'active',
+    
+    -- Basic Information
+    name VARCHAR(255) NOT NULL,
+    display_name VARCHAR(255),
+    slug VARCHAR(255) UNIQUE NOT NULL, -- URL-friendly identifier
+    avatar_url TEXT,
+    
+    -- Contact Information
+    primary_email VARCHAR(255),
+    primary_phone VARCHAR(50),
+    secondary_contacts JSONB DEFAULT '[]', -- Array of {name, role, email, phone}
+    
+    -- Metadata
+    tags TEXT[] DEFAULT '{}', -- Searchable tags
+    internal_notes TEXT, -- Private notes for team
+    
+    -- Relationships
+    department_id UUID REFERENCES departments(id),
+    account_manager_id UUID REFERENCES profiles(id),
+    created_by UUID REFERENCES profiles(id),
+    
+    -- Timestamps
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    last_activity_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    -- Search
+    search_vector tsvector GENERATED ALWAYS AS (
+        setweight(to_tsvector('english', coalesce(name, '')), 'A') ||
+        setweight(to_tsvector('english', coalesce(display_name, '')), 'B') ||
+        setweight(to_tsvector('english', coalesce(array_to_string(tags, ' '), '')), 'C')
+    ) STORED
+);
+
+-- Politician-Specific Information
+CREATE TABLE politician_profiles (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
+    
+    -- Political Information
+    party_affiliation VARCHAR(255),
+    current_position VARCHAR(255), -- MP, MLA, Minister, etc.
+    constituency VARCHAR(255),
+    state VARCHAR(100),
+    previous_positions JSONB DEFAULT '[]', -- Array of {position, from_date, to_date}
+    
+    -- Public Profiles
+    wikipedia_url TEXT,
+    official_website TEXT,
+    
+    -- Demographics
+    date_of_birth DATE,
+    place_of_birth VARCHAR(255),
+    languages_spoken TEXT[],
+    education JSONB DEFAULT '[]', -- Array of {degree, institution, year}
+    
+    -- Political Stance
+    key_focus_areas TEXT[],
+    committees JSONB DEFAULT '[]', -- Array of {name, role, from_date}
+    
+    UNIQUE(client_id)
+);
+
+-- Corporate-Specific Information  
+CREATE TABLE corporate_profiles (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
+    
+    -- Company Information
+    company_name VARCHAR(255),
+    industry VARCHAR(255),
+    company_size VARCHAR(50), -- small, medium, large, enterprise
+    founded_year INTEGER,
+    headquarters_location VARCHAR(255),
+    
+    -- Key Contacts
+    ceo_name VARCHAR(255),
+    pr_head_name VARCHAR(255),
+    
+    -- Business Details
+    revenue_range VARCHAR(100),
+    employee_count_range VARCHAR(100),
+    key_services TEXT[],
+    
+    UNIQUE(client_id)
+);
+
+-- Client Social Media Accounts
+CREATE TABLE client_social_accounts (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
+    platform VARCHAR(50) NOT NULL, -- twitter, facebook, instagram, etc.
+    handle VARCHAR(255) NOT NULL,
+    url TEXT,
+    is_verified BOOLEAN DEFAULT false,
+    follower_count INTEGER,
+    is_primary BOOLEAN DEFAULT false,
+    last_updated TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Client Guidelines (Do's and Don'ts)
+CREATE TABLE client_guidelines (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
+    guideline_type VARCHAR(20) CHECK (guideline_type IN ('do', 'dont')),
+    category VARCHAR(100), -- communication, topics, branding, etc.
+    guideline TEXT NOT NULL,
+    priority INTEGER DEFAULT 0, -- Higher number = higher priority
+    created_by UUID REFERENCES profiles(id),
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Client Documents
+CREATE TABLE client_documents (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
+    document_type VARCHAR(100), -- brand_guidelines, manifesto, biography, etc.
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    file_url TEXT,
+    file_size INTEGER,
+    mime_type VARCHAR(100),
+    uploaded_by UUID REFERENCES profiles(id),
+    uploaded_at TIMESTAMPTZ DEFAULT NOW(),
+    last_accessed_at TIMESTAMPTZ
+);
+
+-- Client Activity Log
+CREATE TABLE client_activities (
+    id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
+    client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
+    activity_type VARCHAR(50), -- note_added, document_uploaded, status_changed, etc.
+    description TEXT,
+    metadata JSONB DEFAULT '{}',
+    performed_by UUID REFERENCES profiles(id),
+    performed_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Indexes for performance
+CREATE INDEX idx_clients_search ON clients USING GIN(search_vector);
+CREATE INDEX idx_clients_department ON clients(department_id);
+CREATE INDEX idx_clients_status ON clients(status);
+CREATE INDEX idx_clients_type ON clients(client_type);
+CREATE INDEX idx_activities_client_date ON client_activities(client_id, performed_at DESC);
+```
+
+### 3.2 Row Level Security (RLS) Policies
+
+```sql
+-- Enable RLS on all tables
+ALTER TABLE clients ENABLE ROW LEVEL SECURITY;
+ALTER TABLE politician_profiles ENABLE ROW LEVEL SECURITY;
+-- ... (similar for all tables)
+
+-- Clients table policies
+CREATE POLICY "Users can view clients in their department" ON clients
+    FOR SELECT USING (
+        department_id IN (
+            SELECT department_id FROM profiles WHERE id = auth.uid()
+        ) OR 
+        EXISTS (
+            SELECT 1 FROM profiles 
+            WHERE id = auth.uid() AND role = 'admin'
+        )
+    );
+
+CREATE POLICY "Only admins and account managers can update clients" ON clients
+    FOR UPDATE USING (
+        account_manager_id = auth.uid() OR
+        EXISTS (
+            SELECT 1 FROM profiles 
+            WHERE id = auth.uid() AND role = 'admin'
+        )
+    );
+```
+
+---
+
+## 4. User Interface Design
+
+### 4.1 Route Structure
+```
+app/
+├── dashboard/
+│   ├── clients/
+│   │   ├── page.tsx                 # Client list view
+│   │   ├── [slug]/
+│   │   │   ├── page.tsx            # Client detail view
+│   │   │   ├── edit/
+│   │   │   │   └── page.tsx       # Edit client
+│   │   │   ├── documents/
+│   │   │   │   └── page.tsx       # Client documents
+│   │   │   └── activity/
+│   │   │       └── page.tsx       # Activity log
+│   │   └── new/
+│   │       └── page.tsx           # Create new client
+```
+
+### 4.2 Component Structure
+
+```typescript
+// Core components following existing patterns
+components/
+├── clients/
+│   ├── client-list.tsx           # Main list component
+│   ├── client-card.tsx           # Card view for grid
+│   ├── client-table.tsx          # Table view
+│   ├── client-filters.tsx        # Filter sidebar
+│   ├── client-search.tsx         # Search with autocomplete
+│   ├── client-detail-header.tsx  # Profile header
+│   ├── client-info-tabs.tsx      # Tabbed information
+│   ├── client-guidelines.tsx     # Do's and Don'ts
+│   ├── client-documents.tsx      # Document management
+│   └── client-activity-feed.tsx  # Activity timeline
+```
+
+### 4.3 Client List View
+
+```typescript
+// Sample structure following existing patterns
+interface ClientListProps {
+  view: 'grid' | 'table';
+  filters: ClientFilters;
+}
+
+// Features:
+- Toggle between grid/table view
+- Real-time search with debouncing
+- Filters: type, status, department, tags
+- Sorting: name, last activity, created date
+- Pagination with infinite scroll
+- Bulk actions for admins
+```
+
+### 4.4 Client Detail Page
+
+```typescript
+// Tab structure for client details
+const clientTabs = [
+  { id: 'overview', label: 'Overview', icon: User },
+  { id: 'guidelines', label: 'Guidelines', icon: FileText },
+  { id: 'social', label: 'Social Media', icon: Share2 },
+  { id: 'documents', label: 'Documents', icon: File },
+  { id: 'activity', label: 'Activity', icon: Activity },
+  { id: 'team', label: 'Team Access', icon: Users }, // Admin only
+];
+```
+
+---
+
+## 5. User Flows
+
+### 5.1 Creating a New Client
+
+```mermaid
+graph TD
+    A[Dashboard] --> B[Click New Client]
+    B --> C{Select Client Type}
+    C -->|Politician| D[Politician Form]
+    C -->|Corporate| E[Corporate Form]
+    D --> F[Fill Basic Info]
+    E --> F
+    F --> G[Add Contact Details]
+    G --> H[Assign Department]
+    H --> I[Set Account Manager]
+    I --> J[Add Initial Guidelines]
+    J --> K[Save Client]
+    K --> L[Redirect to Client Detail]
+```
+
+### 5.2 Client Search and Filter
+
+1. **Quick Search**: Instant search across name, tags, notes
+2. **Advanced Filters**: 
+   - Client type (politician/corporate)
+   - Status (active/inactive/prospect)
+   - Department assignment
+   - Tags
+   - Date ranges
+3. **Saved Filters**: Users can save filter combinations
+4. **Export**: Filtered results can be exported (CSV/PDF)
+
+### 5.3 Managing Client Guidelines
+
+```typescript
+// Guidelines management flow
+interface GuidelineFlow {
+  steps: [
+    'Select guideline type (Do/Don\'t)',
+    'Choose category',
+    'Write guideline text',
+    'Set priority level',
+    'Save with audit trail'
+  ];
+  validation: {
+    maxLength: 500;
+    requiresCategory: true;
+    allowedCategories: ['communication', 'topics', 'branding', 'events'];
+  };
+}
+```
+
+---
+
+## 6. API Design
+
+### 6.1 API Routes (Following Next.js App Router patterns)
+
+```typescript
+// app/api/clients/route.ts
+export async function GET(request: Request) {
+  // List clients with pagination, filters, search
+}
+
+export async function POST(request: Request) {
+  // Create new client
+}
+
+// app/api/clients/[slug]/route.ts
+export async function GET(request: Request, { params }: { params: { slug: string } }) {
+  // Get single client details
+}
+
+export async function PATCH(request: Request, { params }: { params: { slug: string } }) {
+  // Update client
+}
+
+// Real-time subscriptions using Supabase
+const clientSubscription = supabase
+  .channel('clients')
+  .on('postgres_changes', { 
+    event: '*', 
+    schema: 'public', 
+    table: 'clients' 
+  }, handleClientChange)
+  .subscribe();
+```
+
+### 6.2 Client Hooks (Following existing auth pattern)
+
+```typescript
+// lib/clients.tsx
+export function useClient(slug: string) {
+  const [client, setClient] = useState<Client | null>(null);
+  const [loading, setLoading] = useState(true);
+  
+  // Fetch logic with real-time updates
+  return { client, loading, error };
+}
+
+export function useClients(filters?: ClientFilters) {
+  // List hook with pagination
+}
+
+export function useClientActivity(clientId: string) {
+  // Activity feed with real-time updates
+}
+```
+
+---
+
+## 7. Search Implementation
+
+### 7.1 Full-Text Search
+
+```typescript
+// Using PostgreSQL full-text search
+interface SearchImplementation {
+  // Indexed fields with weights
+  fields: {
+    name: 'A',        // Highest weight
+    displayName: 'B',
+    tags: 'C',
+    notes: 'D'        // Lowest weight
+  };
+  
+  // Search features
+  features: [
+    'Fuzzy matching',
+    'Prefix search',
+    'Tag filtering',
+    'Type-ahead suggestions',
+    'Search history'
+  ];
+}
+```
+
+### 7.2 Search UI Component
+
+```typescript
+// components/clients/client-search.tsx
+export function ClientSearch() {
+  // Debounced search input
+  // Dropdown with categorized results
+  // Recent searches
+  // Quick filters
+}
+```
+
+---
+
+## 8. Performance Considerations
+
+### 8.1 Optimization Strategies
+
+1. **Database Level**:
+   - Indexed columns for common queries
+   - Materialized views for complex aggregations
+   - Connection pooling via Supabase
+
+2. **Application Level**:
+   - React Query for caching and synchronization
+   - Virtual scrolling for large lists
+   - Image optimization with next/image
+   - Lazy loading for tabs
+
+3. **Real-time Updates**:
+   - Selective subscriptions (only subscribe to visible data)
+   - Debounced updates
+   - Optimistic UI updates
+
+### 8.2 Loading States
+
+```typescript
+// Consistent loading patterns
+<Skeleton className="h-[200px] w-full" />  // For cards
+<TableSkeleton rows={5} />                 // For tables
+<Spinner size="sm" />                       // For inline loading
+```
+
+---
+
+## 9. Security & Permissions
+
+### 9.1 Access Control Matrix
+
+| Feature | Admin | User (Same Dept) | User (Other Dept) | Account Manager |
+|---------|-------|------------------|-------------------|-----------------|
+| View Client List | All | Department Only | No | Assigned Only |
+| View Client Details | All | Department Only | No | Assigned Only |
+| Create Client | Yes | No | No | No |
+| Edit Client | Yes | No | No | Assigned Only |
+| Delete Client | Yes | No | No | No |
+| Manage Guidelines | Yes | View Only | No | Yes |
+| Upload Documents | Yes | Yes | No | Yes |
+| View Activity | Yes | Yes | No | Yes |
+
+### 9.2 Data Validation
+
+```typescript
+// Using Zod for validation (industry standard)
+import { z } from 'zod';
+
+const clientSchema = z.object({
+  name: z.string().min(2).max(255),
+  client_type: z.enum(['politician', 'corporate', 'ngo', 'government_body']),
+  primary_email: z.string().email().optional(),
+  primary_phone: z.string().regex(/^\+?[\d\s-()]+$/).optional(),
+  tags: z.array(z.string()).max(10),
+});
+```
+
+---
+
+## 10. Integration Points
+
+### 10.1 Existing System Integration
+
+1. **Authentication**: Uses existing `useAuth()` hook
+2. **Departments**: Links to existing department structure
+3. **Profiles**: References existing user profiles
+4. **UI Components**: Extends current shadcn/ui library
+5. **Theme**: Follows established dark theme
+
+### 10.2 Future Integration Considerations
+
+- Content Management System (link SOPs to clients)
+- Task Management (assign tasks to client projects)
+- Communication Logs (email/call tracking)
+- Analytics Dashboard (client engagement metrics)
+
+---
+
+## 11. Mobile Responsiveness
+
+### 11.1 Responsive Design Approach
+
+```typescript
+// Following Tailwind responsive patterns
+<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+  {/* Client cards */}
+</div>
+
+// Mobile-first navigation
+<Sheet> {/* Mobile menu */}
+  <SheetTrigger asChild>
+    <Button variant="ghost" className="md:hidden">
+      <Menu className="h-6 w-6" />
+    </Button>
+  </SheetTrigger>
+</Sheet>
+```
+
+### 11.2 Touch Interactions
+
+- Swipe gestures for navigation
+- Touch-friendly tap targets (min 44x44px)
+- Pull-to-refresh for lists
+- Bottom sheet for mobile actions
+
+---
+
+## 12. Error Handling
+
+### 12.1 Error States
+
+```typescript
+// Consistent error handling
+interface ErrorStates {
+  network: "Unable to connect. Please check your internet connection.";
+  permission: "You don't have permission to view this client.";
+  notFound: "Client not found.";
+  validation: "Please check the form for errors.";
+  server: "Something went wrong. Please try again.";
+}
+
+// Error boundary for client sections
+export function ClientErrorBoundary({ children }: { children: React.ReactNode }) {
+  return (
+    <ErrorBoundary fallback={<ClientErrorFallback />}>
+      {children}
+    </ErrorBoundary>
+  );
+}
+```
+
+---
+
+## 13. Analytics & Monitoring
+
+### 13.1 Tracked Events
+
+```typescript
+// Analytics events
+enum ClientEvents {
+  CLIENT_CREATED = 'client_created',
+  CLIENT_VIEWED = 'client_viewed',
+  CLIENT_EDITED = 'client_edited',
+  GUIDELINE_ADDED = 'guideline_added',
+  DOCUMENT_UPLOADED = 'document_uploaded',
+  SEARCH_PERFORMED = 'search_performed'
+}
+
+// Usage tracking
+track(ClientEvents.CLIENT_VIEWED, {
+  client_id: client.id,
+  client_type: client.client_type,
+  department_id: client.department_id
+});
+```
+
+---
+
+## 14. Testing Strategy
+
+### 14.1 Test Coverage Requirements
+
+1. **Unit Tests**: 
+   - Client validation schemas
+   - Utility functions
+   - Custom hooks
+
+2. **Integration Tests**:
+   - API routes
+   - Database queries
+   - RLS policies
+
+3. **E2E Tests**:
+   - Client creation flow
+   - Search functionality
+   - Permission scenarios
+
+---
+
+## 15. Deployment Considerations
+
+### 15.1 Database Migrations
+
+```sql
+-- Migration strategy
+-- 1. Create new tables without breaking existing schema
+-- 2. Add foreign key relationships
+-- 3. Enable RLS policies
+-- 4. Create indexes
+-- 5. Seed initial data for testing
+```
+
+### 15.2 Feature Flags
+
+```typescript
+// Progressive rollout
+const features = {
+  clientManagement: process.env.NEXT_PUBLIC_FEATURE_CLIENT_MANAGEMENT === 'true',
+  advancedSearch: process.env.NEXT_PUBLIC_FEATURE_ADVANCED_SEARCH === 'true',
+};
+```
+
+---
+
+## 16. Success Metrics
+
+### 16.1 KPIs
+
+1. **Adoption**: 80% of users accessing client module weekly
+2. **Efficiency**: 50% reduction in time to find client information
+3. **Data Quality**: 95% of clients with complete profiles
+4. **Performance**: <2s load time for client list
+5. **Search Accuracy**: 90% success rate on first search
+
+---
+
+## 17. Timeline
+
+### Phase 1: Foundation (Week 1-2)
+- Database schema implementation
+- Basic CRUD operations
+- RLS policies
+
+### Phase 2: Core Features (Week 3-4)
+- Client list and detail views
+- Search implementation
+- Guidelines management
+
+### Phase 3: Advanced Features (Week 5-6)
+- Document management
+- Activity tracking
+- Real-time updates
+
+### Phase 4: Polish (Week 7-8)
+- Performance optimization
+- Mobile responsiveness
+- Testing and bug fixes
+
+---
+
+## Appendix A: Sample Code Patterns
+
+### A.1 Client List Component
+
+```tsx
+// Following existing component patterns
+export function ClientList() {
+  const { user } = useAuth();
+  const [view, setView] = useState<'grid' | 'table'>('grid');
+  const { clients, loading, error } = useClients();
+
+  if (loading) return <ClientListSkeleton />;
+  if (error) return <ErrorState error={error} />;
+
+  return (
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold text-white">Clients</h1>
+        <div className="flex gap-2">
+          <ViewToggle view={view} onChange={setView} />
+          {user?.role === 'admin' && (
+            <Button asChild>
+              <Link href="/dashboard/clients/new">
+                <Plus className="h-4 w-4 mr-2" />
+                Add Client
+              </Link>
+            </Button>
+          )}
+        </div>
+      </div>
+      
+      {view === 'grid' ? (
+        <ClientGrid clients={clients} />
+      ) : (
+        <ClientTable clients={clients} />
+      )}
+    </div>
+  );
+}
+```
+
+### A.2 Client Detail Tabs
+
+```tsx
+// Using existing Tabs component pattern
+<Tabs defaultValue="overview" className="w-full">
+  <TabsList className="grid w-full grid-cols-5">
+    <TabsTrigger value="overview">Overview</TabsTrigger>
+    <TabsTrigger value="guidelines">Guidelines</TabsTrigger>
+    <TabsTrigger value="social">Social Media</TabsTrigger>
+    <TabsTrigger value="documents">Documents</TabsTrigger>
+    <TabsTrigger value="activity">Activity</TabsTrigger>
+  </TabsList>
+  
+  <TabsContent value="overview">
+    <ClientOverview client={client} />
+  </TabsContent>
+  
+  <TabsContent value="guidelines">
+    <ClientGuidelines clientId={client.id} />
+  </TabsContent>
+  
+  {/* ... other tabs */}
+</Tabs>
+```
+
+---
+
+This PRD provides a comprehensive blueprint for implementing the client management feature while maintaining consistency with your existing architecture and design patterns.

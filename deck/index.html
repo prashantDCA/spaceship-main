@@ -1,0 +1,455 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Anya Segen | Creative Agency</title>
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    
+    <style>
+        :root {
+            /* Core Palette */
+            --color-navy-dark: #050816;
+            --color-navy-medium: #101832;
+            --color-white-off: #f0f4f8;
+            --color-slate-light: #a0aec0;
+            --color-slate-dark: #4a5568;
+
+            /* Main Accent */
+            --color-electric-blue: #007CF0;
+            --color-cyan-glow: #00DFD8;
+
+            /* Keyword Accent Palette */
+            --color-gov-accent: #007CF0;      /* Blue */
+            --color-pol-accent: #E11D8F;      /* Fuchsia/Magenta */
+            --color-corp-accent: #00DFD8;     /* Cyan */
+            --color-dev-accent: #10B981;      /* Green */
+
+            --font-main: 'Inter', sans-serif;
+        }
+
+        *, *::before, *::after { box-sizing: border-box; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: var(--font-main);
+            background-color: var(--color-navy-dark);
+            color: var(--color-white-off);
+            margin: 0;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+            overflow-x: hidden;
+        }
+
+        .container { width: 100%; max-width: 1200px; margin: 0 auto; padding: 0 40px; }
+        section { padding: 160px 0; position: relative; }
+        section:not(#hero)::before {
+            content: ''; position: absolute; top: 0; left: 50%;
+            transform: translateX(-50%); width: 80%; height: 1px;
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        }
+        
+        h1, h2, h3 { font-weight: 700; margin-top: 0; letter-spacing: -1px; }
+        h2 {
+            font-size: clamp(2.8rem, 5vw, 4rem); color: var(--color-white-off);
+            text-align: center; margin-bottom: 100px;
+        }
+        h2 span {
+            background: -webkit-linear-gradient(45deg, var(--color-electric-blue), var(--color-cyan-glow));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+        }
+        
+        .aurora-shape {
+            position: absolute; width: 500px; height: 500px;
+            background: radial-gradient(circle, rgba(0, 124, 240, 0.1), transparent 60%);
+            filter: blur(120px); z-index: -1; animation: slow-drift 20s ease-in-out infinite alternate;
+        }
+        .aurora-1 { top: -10%; left: -20%; }
+        .aurora-2 { bottom: -15%; right: -25%; animation-direction: alternate-reverse; }
+        @keyframes slow-drift { from { transform: translate(0, 0); } to { transform: translate(100px, 50px); } }
+
+        /* --- HERO --- */
+        #hero {
+            height: 100vh; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; text-align: center;
+        }
+        #hero h1 {
+            font-size: clamp(3.5rem, 10vw, 8rem); font-weight: 800;
+            margin: 0; letter-spacing: -3px;
+        }
+        #hero .subtitle {
+            font-size: clamp(1.2rem, 4vw, 1.75rem); font-weight: 400;
+            color: var(--color-electric-blue); margin: 10px 0 40px 0;
+            letter-spacing: 2px; text-transform: uppercase;
+        }
+        #hero .contact-info a, #hero .contact-info span {
+            color: var(--color-slate-light);
+            font-weight: 400;
+            transition: color 0.3s ease;
+            text-decoration: none;
+        }
+        #hero .contact-info a:hover {
+            color: var(--color-white-off);
+        }
+
+
+        /* --- ABOUT US --- */
+        #about p {
+            font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 500;
+            line-height: 1.4; max-width: 1100px; margin: 0 auto;
+            color: var(--color-slate-light);
+        }
+        #about p span { color: var(--color-white-off); font-weight: 600; }
+
+        /* --- OUR EXPERTISE (What We Do) --- */
+        .expertise-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 40px;
+        }
+        .expertise-card {
+            background: rgba(16, 24, 50, 0.6); backdrop-filter: blur(10px);
+            padding: 40px; border-radius: 16px; border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: transform 0.4s ease, box-shadow 0.4s ease, border-color 0.4s ease;
+        }
+        .expertise-card:hover {
+            transform: translateY(-12px);
+            box-shadow: 0 0 40px rgba(0, 124, 240, 0.3);
+            border-color: var(--color-electric-blue);
+        }
+        .expertise-card h3 { color: var(--color-white-off); font-size: 1.75rem; margin-bottom: 20px; }
+        .expertise-card h3 span { transition: color 0.3s ease; }
+        .expertise-card:hover h3 span { color: var(--color-electric-blue); }
+        .expertise-card p { margin: 0; color: var(--color-slate-light); line-height: 1.8; }
+
+        /* --- OUR APPROACH --- */
+        #approach .container { max-width: 900px; }
+        .approach-timeline { position: relative; padding: 20px 0; }
+        .approach-timeline::before {
+            content: ''; position: absolute; left: 50%; top: 0; bottom: 0;
+            width: 2px; background: var(--color-slate-dark); transform: translateX(-50%);
+        }
+        .step {
+            padding: 20px 40px; position: relative; width: 50%;
+            opacity: 0; transform: translateY(50px);
+            transition: all 0.8s cubic-bezier(0.165, 0.84, 0.44, 1);
+        }
+        .step.visible { opacity: 1; transform: translateY(0); }
+        .step:nth-child(odd) { left: 0; padding-left: 0; text-align: right; }
+        .step:nth-child(even) { left: 50%; padding-right: 0; text-align: left; }
+        .step::after {
+            content: ''; position: absolute; width: 18px; height: 18px;
+            border-radius: 50%; background: var(--color-slate-dark);
+            border: 3px solid var(--color-slate-dark); top: 50%;
+            transform: translateY(-50%); transition: all 0.3s ease;
+        }
+        .step:nth-child(odd)::after { right: -11px; }
+        .step:nth-child(even)::after { left: -11px; }
+        .step:hover::after { background: var(--color-electric-blue); border-color: var(--color-electric-blue); }
+        .step h3 { font-size: 2rem; margin: 0 0 10px 0; color: var(--color-white-off); transition: color 0.3s ease; }
+        .step:hover h3 { color: var(--color-electric-blue); }
+        .step p { margin: 0; color: var(--color-slate-light); font-size: 1.1rem; line-height: 1.6; }
+
+        /* --- IMPACT STORIES (Portfolio) --- */
+        .tabs { display: flex; justify-content: center; gap: 15px; margin-bottom: 80px; flex-wrap: wrap; }
+        .tab-button {
+            background: rgba(16, 24, 50, 0.6); border: 1px solid var(--color-slate-dark);
+            color: var(--color-slate-light); padding: 12px 25px; border-radius: 50px; cursor: pointer;
+            font-size: 1rem; font-weight: 500; transition: all 0.3s ease; backdrop-filter: blur(5px);
+        }
+        .tab-button:hover { color: var(--color-white-off); border-color: var(--color-electric-blue); }
+        .tab-button.active {
+            background-color: var(--color-electric-blue); border-color: var(--color-electric-blue);
+            color: var(--color-white-off); font-weight: 600; box-shadow: 0 5px 20px rgba(0, 119, 255, 0.2);
+        }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .project-layout {
+            display: grid; grid-template-columns: 7fr 5fr;
+            gap: 60px; align-items: center; margin-bottom: 120px;
+        }
+        .project-layout:last-child { margin-bottom: 0; }
+        .project-description h3 { font-size: 2.5rem; margin-bottom: 20px; color: var(--color-white-off); }
+        .project-description p { color: var(--color-slate-light); line-height: 1.8; font-size: 1.1rem; }
+        
+        /* Keyword Hover Magic */
+        .project-description span { font-weight: 600; color: var(--color-slate-light); transition: color 0.3s ease; }
+        #gov .project-description:hover span { color: var(--color-gov-accent); }
+        #pol .project-description:hover span { color: var(--color-pol-accent); }
+        #corp .project-description:hover span { color: var(--color-corp-accent); }
+        #dev .project-description:hover span { color: var(--color-dev-accent); }
+        
+        .project-gallery { display: grid; gap: 20px; }
+        .image-box {
+            background-color: var(--color-navy-medium); border-radius: 12px;
+            overflow: hidden; position: relative;
+            border: 1px solid rgba(255,255,255,0.1); transition: all 0.4s ease;
+            aspect-ratio: 16 / 9;
+        }
+        /* Removes default "IMAGE" text if an img tag is present */
+        .image-box:has(img)::before { display: none; }
+        .image-box img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover; /* This is key for preventing distortion */
+            transition: transform 0.4s ease;
+        }
+        .image-box:hover img {
+            transform: scale(1.05);
+        }
+        .image-box:hover {
+            border-color: var(--color-cyan-glow);
+            box-shadow: 0 0 30px rgba(0, 223, 216, 0.1);
+        }
+
+        /* Custom gallery for featured D2C project */
+        .gallery-featured-d2c {
+            grid-template-columns: 1fr 1fr;
+        }
+        .gallery-featured-d2c .image-box {
+            aspect-ratio: 4 / 3;
+        }
+
+        /* Custom gallery for ITC square project */
+        .gallery-square {
+            grid-template-columns: 1fr 1fr;
+        }
+        .gallery-square .image-box {
+            aspect-ratio: 1 / 1;
+        }
+
+        /* Custom gallery for Intract vertical project */
+        .gallery-vertical .image-box {
+            aspect-ratio: 9 / 16;
+        }
+
+
+        /* --- WHY US --- */
+        #why-us .expertise-grid { grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); }
+        #why-us .expertise-card { display: flex; align-items: flex-start; gap: 20px; }
+        #why-us .expertise-card .icon { color: var(--color-electric-blue); flex-shrink: 0; margin-top: 5px; }
+        #why-us .expertise-card p { margin: 0; color: var(--color-slate-light); line-height: 1.6; }
+        #why-us .expertise-card p strong { color: var(--color-white-off); font-weight: 600; }
+        
+        /* --- CONTACT --- */
+        #contact { text-align: center; }
+        #contact .founder-quote {
+            font-size: clamp(2rem, 4vw, 3rem); font-weight: 500;
+            color: var(--color-white-off); max-width: 800px; margin: 0 auto 20px; line-height: 1.4;
+        }
+        #contact .founder-quote::before, #contact .founder-quote::after { color: var(--color-electric-blue); }
+        #contact .founder-quote::before { content: "“"; } #contact .founder-quote::after { content: "”"; }
+        #contact .founder-name { font-size: 1.2rem; font-weight: 500; color: var(--color-slate-light); }
+        #contact .team-desc { font-size: 1rem; color: var(--color-slate-dark); max-width: 600px; margin: 20px auto 0; font-style: italic; }
+        #contact h2 { margin-top: 120px; margin-bottom: 20px; }
+        #contact .final-pitch { font-size: 1.2rem; color: var(--color-slate-light); max-width: 600px; margin: 0 auto 50px; line-height: 1.7; }
+        
+        #contact .contact-links a {
+            margin: 0 10px;
+            font-size: 1.2rem;
+            font-weight: 500;
+            color: var(--color-slate-light); 
+            text-decoration: none;
+            transition: color 0.3s ease;
+        }
+        #contact .contact-links a:hover {
+            color: var(--color-white-off);
+        }
+        #contact .address {
+            font-size: 1rem;
+            color: var(--color-slate-dark);
+            margin-top: 30px;
+            line-height: 1.6;
+        }
+        
+        /* --- RESPONSIVE --- */
+        @media (max-width: 992px) {
+            .project-layout { grid-template-columns: 1fr; }
+            .project-gallery { grid-row: 1; margin-bottom: 40px; }
+        }
+        @media (max-width: 768px) {
+            section { padding: 100px 0; }
+            h2 { margin-bottom: 60px; }
+            .step, .step:nth-child(even), .step:nth-child(odd) {
+                width: 100%; left: 0; padding: 20px 0 20px 40px; text-align: left;
+            }
+            .approach-timeline::before { left: 10px; }
+            .step::after, .step:nth-child(odd)::after, .step:nth-child(even)::after { left: 1px; }
+            #why-us .expertise-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+
+    <main>
+        <section id="hero">
+            <div class="aurora-shape aurora-1"></div>
+            <div class="aurora-shape aurora-2"></div>
+            <h1>Anya Segen</h1>
+            <p class="subtitle">Creative Agency</p>
+            <div class="contact-info">
+                <a href="http://www.anyasegen.com" target="_blank">www.anyasegen.com</a>
+                <span>&nbsp;|&nbsp;</span>
+                <a href="mailto:admin@anyasegen.com">admin@anyasegen.com</a>
+                <span>&nbsp;|&nbsp;</span>
+                <a href="tel:+918383036073">+91 8383036073</a>
+            </div>
+        </section>
+
+        <section id="about" class="container">
+            <p>Anya Segen is a creative agency building <span>brands, stories, and campaigns</span> that resonate. Since 2014, we've worked at the intersection of strategy, design, and technology—helping <span>leaders and brands</span> shape their narratives and drive meaningful impact.</p>
+        </section>
+
+        <section id="expertise">
+            <div class="container">
+                <div class="aurora-shape aurora-1"></div>
+                <h2 class="reveal">Our <span>Expertise</span></h2>
+                <div class="expertise-grid">
+                    <div class="expertise-card reveal"><h3><span>Branding</span> & Identity</h3><p>Crafting memorable logos, comprehensive brand systems, messaging, and packaging that capture your essence.</p></div>
+                    <div class="expertise-card reveal"><h3><span>Digital Marketing</span> & Amplification</h3><p>Executing targeted social media strategies, paid advertising campaigns, and influencer marketing to grow your audience.</p></div>
+                    <div class="expertise-card reveal"><h3><span>Films</span> & Storytelling</h3><p>Producing compelling motion graphics, short films, and animated explainers that transform complex ideas into elegant narratives.</p></div>
+                    <div class="expertise-card reveal"><h3><span>Public Sector</span> & Advocacy</h3><p>Designing high-impact election campaigns, public health messaging (SBCC), and grassroots outreach interventions.</p></div>
+                    <div class="expertise-card reveal"><h3><span>Brand</span> & Product Launch</h3><p>Developing end-to-end launch strategies, from initial positioning and identity to e-commerce platforms and market entry.</p></div>
+                    <div class="expertise-card reveal"><h3><span>Corporate</span> & Editorial Design</h3><p>Creating premium communication assets like annual reports, coffee table books, and e-books with original illustration and design.</p></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="approach">
+            <div class="container">
+                <h2 class="reveal">Our <span>Approach</span></h2>
+                <div class="approach-timeline">
+                    <div class="step"><div class="content"><h3>Discover</h3><p>Our process begins with deep listening. We immerse ourselves in your world to understand your audience, challenges, and ambitions.</p></div></div>
+                    <div class="step"><div class="content"><h3>Strategize</h3><p>With a foundation of insight, we architect a clear, strategic blueprint that guides every creative decision with purpose and clarity.</p></div></div>
+                    <div class="step"><div class="content"><h3>Create</h3><p>This is where ideas take flight. We craft the designs, stories, and experiences that forge an emotional connection with your audience.</p></div></div>
+                    <div class="step"><div class="content"><h3>Amplify</h3><p>A great idea needs to be seen. We execute targeted campaigns across all channels—digital, print, and on-ground—to make waves.</p></div></div>
+                    <div class="step"><div class="content"><h3>Refine</h3><p>Our partnership doesn't end at launch. We believe in data-driven evolution, continuously measuring and adapting for long-term success.</p></div></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="portfolio">
+             <div class="aurora-shape aurora-2"></div>
+            <div class="container">
+                <h2 class="reveal">Impact <span>Stories</span></h2>
+                <div class="tabs reveal">
+                    <button class="tab-button active" data-tab="gov">Government & Policy</button>
+                    <button class="tab-button" data-tab="pol">Political Campaigns</button>
+                    <button class="tab-button" data-tab="corp">Corporate & FMCG</button>
+                    <button class="tab-button" data-tab="dev">Development & Health</button>
+                </div>
+                
+                <div id="gov" class="tab-content active">
+                    <div class="project-layout reveal"><div class="project-gallery"><div class="image-box"><img src="gov-gullak-event.jpg" alt="Gullak Event branding showcase"></div></div><div class="project-description"><h3>Gullak Event</h3><p>For the <span>Ministry of Rural Development</span>, Uttarakhand, we developed a <span>Shark Tank-style</span> platform for <span>rural entrepreneurs</span>, delivering brand identity, campaign collaterals, and success story films.</p></div></div>
+                    <div class="project-layout reveal"><div class="project-gallery"><div class="image-box"><img src="gov-rbi-rebrand.jpg" alt="Rural Business Incubator rebrand concept"></div></div><div class="project-description"><h3>RBI Rebrand</h3><p>We proposed a complete <span>identity revamp</span> for the Rural Business Incubator to clearly <span>differentiate it</span> from the Reserve Bank of India, covering name strategy to brand architecture.</p></div></div>
+                    <div class="project-layout reveal"><div class="project-gallery"><div class="image-box"><img src="gov-bihan-chhattisgarh.jpg" alt="BIHAN Chhattisgarh product packaging design"></div></div><div class="project-description"><h3>BIHAN, Chhattisgarh</h3><p>We partnered with the <span>Dept. of Rural Development</span> to build <span>packaging SOPs</span> and branding for 25 SHG products, impacting over <span>7,500 households</span> and positioning them on national platforms.</p></div></div>
+                    <div class="project-layout reveal"><div class="project-gallery"><div class="image-box"><img src="gov-ministries-film.jpg" alt="Film still from Ministry of Coal & Mines project"></div></div><div class="project-description"><h3>Ministry of Coal & Mines</h3><p>We produced HD films for both Ministries on <span>commercial mine auctions</span>, featuring top industrialists and showcasing themes of <span>sustainability</span>, investment, and employment.</p></div></div>
+                </div>
+                
+                <div id="pol" class="tab-content">
+                    <div class="project-layout reveal"><div class="project-gallery"><div class="image-box"><img src="pol-bjym.jpg" alt="BJYM social media campaign graphic"></div></div><div class="project-description"><h3>BJYM</h3><p>As an ongoing partner, we manage social media narratives, <span>milestone campaigns</span>, and <span>digital amplification</span> for the Bharatiya Janata Yuva Morcha, strengthening <span>youth engagement</span> nationwide.</p></div></div>
+                    <div class="project-layout reveal"><div class="project-gallery"><div class="image-box"><img src="pol-ram-rajya.jpg" alt="Ram Rajya campaign collateral"></div></div><div class="project-description"><h3>Ram Rajya Campaign</h3><p>We designed a campaign to position a BJYM leader in Ayodhya via a <span>‘Say No to Plastic’</span> narrative, developing a complete <span>campaign identity</span> and leading all social media execution.</p></div></div>
+                     <div class="project-layout reveal"><div class="project-gallery"><div class="image-box"><img src="pol-modi-hai-naa.jpg" alt="Modi Hai Naa digital campaign content"></div></div><div class="project-description"><h3>Modi Hai Naa</h3><p>We crafted a digital campaign for Neha Joshi (VP BJYM) with the message “If PM Modi is there, everything is possible,” delivering an <span>end-to-end campaign</span> from concept to content.</p></div></div>
+                </div>
+                
+                <div id="corp" class="tab-content">
+                    <div class="project-layout reveal"><div class="project-gallery gallery-featured-d2c"><div class="image-box"><img src="corp-d2c-gogrin.jpg" alt="Go Grin brand identity and website"></div><div class="image-box"><img src="corp-d2c-pentagonia.jpg" alt="Pentagonia e-commerce interface"></div><div class="image-box"><img src="corp-d2c-phirkcraft.jpg" alt="Phirk Craft brand launch visuals"></div><div class="image-box"><img src="corp-d2c-lisabona.jpg" alt="Lisabona e-commerce platform design"></div></div><div class="project-description"><h3>D2C E-Commerce Brands</h3><p>For brands like <span>Go Grin</span>, <span>Pentagonia</span>, Phirk Craft, and <span>Lisabona</span>, we developed complete brand identities, launch strategies, and end-to-end <span>e-commerce platforms</span>.</p></div></div>
+                    <div class="project-layout reveal"><div class="project-gallery"><div class="image-box"><img src="corp-philips-foundation.jpg" alt="Philips Foundation coffee table book design"></div></div><div class="project-description"><h3>Philips Foundation</h3><p>We produced a premium <span>coffee table book</span>, managing the entire process from on-ground photography and interviews to the <span>elegant final design</span> and printing.</p></div></div>
+                    <div class="project-layout reveal"><div class="project-gallery gallery-square"><div class="image-box"><img src="corp-itc-infographic-1.jpg" alt="ITC Infographic on brand portfolio"></div><div class="image-box"><img src="corp-itc-infographic-2.jpg" alt="ITC Infographic on sustainability"></div><div class="image-box"><img src="corp-itc-infographic-3.jpg" alt="ITC Infographic on vertical integration"></div><div class="image-box"><img src="corp-itc-infographic-4.jpg" alt="ITC Infographic on market leadership"></div></div><div class="project-description"><h3>ITC Limited</h3><p>For the launch of their new corporate website, we partnered with ITC to design four distinct <span>infographics</span>. Each visual narrative was meticulously crafted to articulate the <span>vast scale</span> of the ITC conglomerate, elegantly showcasing their diverse <span>portfolio of brands</span> and impact across multiple verticals.</p></div></div>
+                    <div class="project-layout reveal"><div class="project-gallery gallery-vertical"><div class="image-box"><img src="corp-intract-quest.jpg" alt="Intract Quest digital hub interface"></div></div><div class="project-description"><h3>Intract</h3><p>Designed and developed a dynamic <span>digital hub</span> for Quest by Intract — merging <span>sleek interfaces</span> with intuitive user journeys to drive community engagement in the <span>Web3 ecosystem</span>.</p></div></div>
+                </div>
+
+                <div id="dev" class="tab-content">
+                    <div class="project-layout reveal"><div class="project-gallery"><div class="image-box"><img src="dev-pfi-sbcc.jpg" alt="Population Foundation of India SBCC tools"></div><div class="image-box"><img src="dev-pfi-saathiya.jpg" alt="Saathiya program rebrand logo"></div></div><div class="project-description"><h3>Population Foundation of India</h3><p>We developed a rich suite of <span>SBCC tools</span> for <span>adolescent health</span>, including 3D comics and interactive games. We also <span>rebranded their Saathiya program</span> with a new logo, leaflets, and app promos.</p></div></div>
+                    <div class="project-layout reveal"><div class="project-gallery"><div class="image-box"><img src="dev-bbc-kilkari.jpg" alt="BBC Media Action 'Kilkari' campaign poster"></div></div><div class="project-description"><h3>BBC Media Action</h3><p>We produced the <span>‘Kilkari’ campaign</span> on maternal health, a nationwide initiative to raise awareness and promote healthier practices among <span>rural women</span>.</p></div></div>
+                    <div class="project-layout reveal"><div class="project-gallery"><div class="image-box"><img src="dev-path-je.jpg" alt="PATH animated film on Japanese Encephalitis"></div><div class="image-box"><img src="dev-pathfinder-fp.jpg" alt="Pathfinder family planning video module"></div></div><div class="project-description"><h3>PATH & Pathfinder</h3><p>This partnership involved creating animated films on <span>Japanese Encephalitis</span> and developing 24 video modules on <span>family planning</span> for an LMS serving over 1,500 health workers.</p></div></div>
+                    <div class="project-layout reveal"><div class="project-gallery"><div class="image-box"><img src="dev-nutrition-initiatives.jpg" alt="Maternal and Child Nutrition campaign collateral"></div></div><div class="project-description"><h3>Maternal & Child Nutrition</h3><p>For the <span>Micronutrients Initiative</span> and <span>ABT Associates</span>, we conducted communication needs assessments and designed <span>behavior change</span> and contraceptive awareness campaigns.</p></div></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="why-us">
+            <div class="container">
+                <h2 class="reveal">Why <span>Partner With Us</span></h2>
+                <div class="expertise-grid">
+                    <div class="expertise-card reveal"><div class="icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z" fill="currentColor"/></svg></div><div><p><strong>Diverse Expertise:</strong> 10+ years across health, corporate, and high-impact political narratives.</p></div></div>
+                    <div class="expertise-card reveal"><div class="icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z" fill="currentColor"/></svg></div><div><p><strong>Integrated Stack:</strong> Strategy, design, content, motion & tech under one roof.</p></div></div>
+                    <div class="expertise-card reveal"><div class="icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z" fill="currentColor"/></svg></div><div><p><strong>Emotion & Insight:</strong> Combining data with sharp creative to move audiences.</p></div></div>
+                    <div class="expertise-card reveal"><div class="icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg"><path d="M12 2C6.48 2 2 6.48 2 12C2 17.52 6.48 22 12 22C17.52 22 22 17.52 22 12C22 6.48 17.52 2 12 2ZM10 17L5 12L6.41 10.59L10 14.17L17.59 6.58L19 8L10 17Z" fill="currentColor"/></svg></div><div><p><strong>Collaborative Partnership:</strong> We work as an extension of your team, building together.</p></div></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="contact">
+            <div class="aurora-shape aurora-1"></div>
+            <div class="container reveal">
+                <p class="founder-quote">We don’t sell designs. We build emotional algorithms.</p>
+                <p class="founder-name">Prashant Chaudhary — Founder & Creative Director</p>
+                <p class="team-desc">Supported by our agile team of brand strategists, designers, motion artists, video editors, illustrators & content specialists.</p>
+                
+                <h2 class="reveal">Let’s Build Together</h2>
+                <p class="final-pitch">Whether launching a product, shaping a health story, or driving a political narrative — we turn your vision into a living, breathing brand experience.</p>
+                <div class="contact-links">
+                    <a href="mailto:admin@anyasegen.com">admin@anyasegen.com</a>
+                    <span style="color: var(--color-slate-dark); margin: 0 10px;">•</span>
+                    <a href="tel:+918383036073">+91 8383036073</a>
+                    <span style="color: var(--color-slate-dark); margin: 0 10px;">•</span>
+                    <a href="http://www.anyasegen.com" target="_blank">www.anyasegen.com</a>
+                </div>
+                <p class="address">H-187, Lohia Road, Sector 63, Noida-201301, Uttar Pradesh, India</p>
+            </div>
+        </section>
+    </main>
+    
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // On-Scroll Reveal Animation
+            const revealElements = document.querySelectorAll('.reveal, .step');
+            const observer = new IntersectionObserver(entries => {
+                entries.forEach((entry) => {
+                    if (entry.isIntersecting) {
+                        entry.target.classList.add('visible');
+                    }
+                });
+            }, {
+                threshold: 0.1,
+                rootMargin: '0px 0px -50px 0px'
+            });
+            revealElements.forEach((el, index) => {
+                el.style.transitionDelay = `${(index % 5) * 100}ms`;
+                observer.observe(el);
+            });
+
+            // Portfolio Tabs
+            const tabsContainer = document.querySelector('.tabs');
+            if(tabsContainer) {
+                const tabButtons = document.querySelectorAll('.tab-button');
+                const tabContents = document.querySelectorAll('.tab-content');
+
+                tabsContainer.addEventListener('click', function(e) {
+                    if (!e.target.classList.contains('tab-button')) return;
+                    const tabId = e.target.getAttribute('data-tab');
+
+                    tabButtons.forEach(button => button.classList.remove('active'));
+                    tabContents.forEach(content => content.classList.remove('active'));
+
+                    e.target.classList.add('active');
+                    const activeTab = document.getElementById(tabId);
+                    activeTab.classList.add('active');
+                    
+                    // Re-observe elements in the new active tab to trigger animation
+                    const newRevealElements = activeTab.querySelectorAll('.reveal');
+                    newRevealElements.forEach(el => {
+                        observer.unobserve(el); // remove to re-trigger
+                        el.classList.remove('visible'); // remove class to re-animate
+                        observer.observe(el);
+                    });
+                });
+            }
+        });
+    </script>
+
+</body>
+</html>

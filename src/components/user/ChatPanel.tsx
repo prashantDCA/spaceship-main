@@ -1,0 +1,371 @@
+'use client'
+
+import { useState, useEffect, useRef } from 'react'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import {
+    MessageCircle, Send, Users, Plus, Loader2,
+    User, ArrowLeft, Building
+} from 'lucide-react'
+import {
+    sendMessage,
+    getOrCreateDirectRoom,
+    ChatRoom,
+} from '@/app/actions/chat'
+import {
+    useChatRooms,
+    useChatMessages,
+    useChatableUsers,
+    useCreateDepartmentRoom,
+} from '@/hooks/useSWR'
+
+export default function ChatPanel() {
+    // Use SWR hooks for data fetching with caching
+    const { rooms, isLoading: loading, refresh: refreshRooms } = useChatRooms()
+    const { users: chatableUsers } = useChatableUsers()
+    const { createRoom: createDeptRoom, isCreating: creatingDeptRoom } = useCreateDepartmentRoom()
+
+    const [selectedRoom, setSelectedRoom] = useState<ChatRoom | null>(null)
+    const [newMessage, setNewMessage] = useState('')
+    const [sending, setSending] = useState(false)
+    const [showNewChat, setShowNewChat] = useState(false)
+    const [creatingChat, setCreatingChat] = useState(false)
+
+    // Use SWR for messages with 40s polling
+    const {
+        messages,
+        isLoading: messagesLoading,
+        refresh: refreshMessages
+    } = useChatMessages(selectedRoom?.id || null, 40000) // 40 second polling
+
+    const messagesEndRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
+    }, [messages])
+
+    const handleSendMessage = async () => {
+        if (!selectedRoom || !newMessage.trim() || sending) return
+
+        setSending(true)
+        const result = await sendMessage(selectedRoom.id, newMessage)
+        if (result.success) {
+            setNewMessage('')
+            refreshMessages()
+        }
+        setSending(false)
+    }
+
+    const handleStartChat = async (userId: string) => {
+        setCreatingChat(true)
+        const result = await getOrCreateDirectRoom(userId)
+        if (result.success && result.data) {
+            setSelectedRoom(result.data)
+            setShowNewChat(false)
+            refreshRooms()
+        }
+        setCreatingChat(false)
+    }
+
+    const handleKeyPress = (e: React.KeyboardEvent) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault()
+            handleSendMessage()
+        }
+    }
+
+    const formatTime = (dateString: string) => {
+        const date = new Date(dateString)
+        return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+
+    const formatDate = (dateString: string) => {
+        const date = new Date(dateString)
+        const today = new Date()
+        const yesterday = new Date(today)
+        yesterday.setDate(yesterday.getDate() - 1)
+
+        if (date.toDateString() === today.toDateString()) {
+            return 'Today'
+        } else if (date.toDateString() === yesterday.toDateString()) {
+            return 'Yesterday'
+        }
+        return date.toLocaleDateString()
+    }
+
+    // New Chat View
+    if (showNewChat) {
+        return (
+            <div className="space-y-6">
+                <div className="flex items-center space-x-4">
+                    <Button
+                        variant="outline"
+                        onClick={() => setShowNewChat(false)}
+                        className="text-white border-gray-600 hover:bg-gray-700"
+                    >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back
+                    </Button>
+                    <h2 className="text-2xl font-bold text-white">Start New Chat</h2>
+                </div>
+
+                <Card className="bg-gray-800 border-gray-700">
+                    <CardHeader>
+                        <CardTitle className="text-white">Select a person to chat with</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        {chatableUsers.length === 0 ? (
+                            <p className="text-gray-400 text-center py-4">
+                                No users available to chat with
+                            </p>
+                        ) : (
+                            <div className="space-y-2">
+                                {chatableUsers.map((user) => (
+                                    <div
+                                        key={user.id}
+                                        className="flex items-center justify-between p-3 bg-gray-700 rounded-lg hover:bg-gray-600 cursor-pointer"
+                                        onClick={() => !creatingChat && handleStartChat(user.id)}
+                                    >
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-10 h-10 bg-blue-600 rounded-full flex items-center justify-center">
+                                                <User className="h-5 w-5 text-white" />
+                                            </div>
+                                            <div>
+                                                <p className="text-white font-medium">{user.name}</p>
+                                                <p className="text-xs text-gray-400">
+                                                    {user.role} • {user.department_name}
+                                                    {user.reason === 'teammate' && ' • Working on same client'}
+                                                </p>
+                                            </div>
+                                        </div>
+                                        {creatingChat ? (
+                                            <Loader2 className="h-5 w-5 animate-spin text-blue-400" />
+                                        ) : (
+                                            <MessageCircle className="h-5 w-5 text-gray-400" />
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </CardContent>
+                </Card>
+            </div>
+        )
+    }
+
+    // Chat View with Room Selected
+    if (selectedRoom) {
+        return (
+            <div className="flex flex-col h-[calc(100vh-8rem)]">
+                {/* Header */}
+                <div className="flex items-center space-x-4 mb-4">
+                    <Button
+                        variant="outline"
+                        onClick={() => setSelectedRoom(null)}
+                        className="text-white border-gray-600 hover:bg-gray-700"
+                    >
+                        <ArrowLeft className="h-4 w-4 mr-2" />
+                        Back
+                    </Button>
+                    <div>
+                        <h2 className="text-xl font-bold text-white">{selectedRoom.name}</h2>
+                        <p className="text-sm text-gray-400 capitalize">{selectedRoom.type} chat</p>
+                    </div>
+                </div>
+
+                {/* Messages */}
+                <Card className="flex-1 bg-gray-800 border-gray-700 overflow-hidden flex flex-col">
+                    <CardContent className="flex-1 overflow-y-auto p-4">
+                        {messagesLoading ? (
+                            <div className="flex items-center justify-center h-full">
+                                <Loader2 className="h-8 w-8 animate-spin text-blue-400" />
+                            </div>
+                        ) : messages.length === 0 ? (
+                            <div className="flex items-center justify-center h-full text-gray-400">
+                                <div className="text-center">
+                                    <MessageCircle className="mx-auto h-12 w-12 mb-3 opacity-50" />
+                                    <p>No messages yet. Start the conversation!</p>
+                                </div>
+                            </div>
+                        ) : (
+                            <div className="space-y-4">
+                                {messages.map((msg, index) => {
+                                    const showDate = index === 0 ||
+                                        formatDate(messages[index - 1].created_at) !== formatDate(msg.created_at)
+
+                                    return (
+                                        <div key={msg.id}>
+                                            {showDate && (
+                                                <div className="text-center text-xs text-gray-500 my-4">
+                                                    {formatDate(msg.created_at)}
+                                                </div>
+                                            )}
+                                            <div className={`flex ${msg.is_mine ? 'justify-end' : 'justify-start'}`}>
+                                                <div className={`max-w-[70%] ${msg.is_mine
+                                                    ? 'bg-blue-600 text-white'
+                                                    : 'bg-gray-700 text-white'
+                                                    } rounded-lg px-4 py-2`}>
+                                                    {!msg.is_mine && (
+                                                        <p className="text-xs text-blue-300 mb-1">{msg.sender_name}</p>
+                                                    )}
+                                                    <p className="whitespace-pre-wrap">{msg.message}</p>
+                                                    <p className={`text-xs mt-1 ${msg.is_mine ? 'text-blue-200' : 'text-gray-400'
+                                                        }`}>
+                                                        {formatTime(msg.created_at)}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+                                <div ref={messagesEndRef} />
+                            </div>
+                        )}
+                    </CardContent>
+
+                    {/* Input */}
+                    <div className="p-4 border-t border-gray-700">
+                        <div className="flex space-x-2">
+                            <Input
+                                placeholder="Type a message..."
+                                value={newMessage}
+                                onChange={(e) => setNewMessage(e.target.value)}
+                                onKeyDown={handleKeyPress}
+                                className="flex-1 bg-gray-700 border-gray-600 text-white"
+                                disabled={sending}
+                            />
+                            <Button
+                                onClick={handleSendMessage}
+                                disabled={!newMessage.trim() || sending}
+                                className="bg-blue-600 hover:bg-blue-700"
+                            >
+                                {sending ? (
+                                    <Loader2 className="h-4 w-4 animate-spin" />
+                                ) : (
+                                    <Send className="h-4 w-4" />
+                                )}
+                            </Button>
+                        </div>
+                    </div>
+                </Card>
+            </div>
+        )
+    }
+
+    // Rooms List View
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h2 className="text-2xl font-bold text-white mb-2">Messages</h2>
+                    <p className="text-gray-400">
+                        Chat with your team members
+                    </p>
+                </div>
+                <div className="flex space-x-2">
+                    <Button
+                        onClick={() => setShowNewChat(true)}
+                        className="bg-blue-600 hover:bg-blue-700"
+                    >
+                        <Plus className="h-4 w-4 mr-2" />
+                        New Chat
+                    </Button>
+                    <Button
+                        onClick={async () => {
+                            const result = await createDeptRoom(undefined)
+                            if (result?.success && result.data) {
+                                setSelectedRoom(result.data)
+                                refreshRooms()
+                            }
+                        }}
+                        disabled={creatingDeptRoom}
+                        variant="outline"
+                        className="text-white border-purple-500 hover:bg-purple-600/20"
+                    >
+                        {creatingDeptRoom ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                        ) : (
+                            <Building className="h-4 w-4 mr-2" />
+                        )}
+                        My Department
+                    </Button>
+                </div>
+            </div>
+
+            {loading ? (
+                <div className="space-y-3">
+                    {[1, 2, 3].map(i => (
+                        <Card key={i} className="bg-gray-800 border-gray-700 animate-pulse">
+                            <CardContent className="p-4">
+                                <div className="flex items-center space-x-3">
+                                    <div className="w-12 h-12 bg-gray-700 rounded-full"></div>
+                                    <div className="flex-1">
+                                        <div className="h-4 bg-gray-700 rounded w-1/3 mb-2"></div>
+                                        <div className="h-3 bg-gray-700 rounded w-2/3"></div>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            ) : rooms.length === 0 ? (
+                <Card className="bg-gray-800 border-gray-700">
+                    <CardContent className="text-center py-12">
+                        <MessageCircle className="mx-auto h-16 w-16 text-gray-500 mb-4" />
+                        <h3 className="text-lg font-semibold text-white mb-2">
+                            No conversations yet
+                        </h3>
+                        <p className="text-gray-400 mb-4">
+                            Start a new chat with your team members
+                        </p>
+                        <Button
+                            onClick={() => setShowNewChat(true)}
+                            className="bg-blue-600 hover:bg-blue-700"
+                        >
+                            <Plus className="h-4 w-4 mr-2" />
+                            Start Chatting
+                        </Button>
+                    </CardContent>
+                </Card>
+            ) : (
+                <div className="space-y-2">
+                    {rooms.map((room) => (
+                        <Card
+                            key={room.id}
+                            className="bg-gray-800 border-gray-700 hover:border-blue-500 transition-colors cursor-pointer"
+                            onClick={() => setSelectedRoom(room)}
+                        >
+                            <CardContent className="p-4">
+                                <div className="flex items-center space-x-3">
+                                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${room.type === 'direct' ? 'bg-blue-600' :
+                                        room.type === 'client' ? 'bg-green-600' : 'bg-purple-600'
+                                        }`}>
+                                        {room.type === 'direct' ? (
+                                            <User className="h-6 w-6 text-white" />
+                                        ) : (
+                                            <Users className="h-6 w-6 text-white" />
+                                        )}
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className="flex items-center justify-between">
+                                            <p className="text-white font-medium truncate">{room.name}</p>
+                                            {room.last_message_at && (
+                                                <span className="text-xs text-gray-500">
+                                                    {formatTime(room.last_message_at)}
+                                                </span>
+                                            )}
+                                        </div>
+                                        <p className="text-sm text-gray-400 truncate">
+                                            {room.last_message || 'No messages yet'}
+                                        </p>
+                                    </div>
+                                </div>
+                            </CardContent>
+                        </Card>
+                    ))}
+                </div>
+            )}
+        </div>
+    )
+}

@@ -1,0 +1,21 @@
+Testing different iStock preview URL variations for top-left watermark:
+
+Original URL (center watermark):
+https://media.istockphoto.com/id/1360048537/video/futuristic-animated-concept-big-data-center-chief-technology-officer-using-laptop-standing-in.mp4?s=mp4-640x640-is&k=20&c=qfseEZiJxfYc26fY6oD2hRZp4stCUQAHBxFgbPJCrKc=
+
+Potential top-left variations to test:
+1. https://media.istockphoto.com/id/1360048537/video/futuristic-animated-concept-big-data-center-chief-technology-officer-using-laptop-standing-in.mp4?s=mp4-640x640-is&k=20&c=qfseEZiJxfYc26fY6oD2hRZp4stCUQAHBxFgbPJCrKc=&pos=tl
+
+2. https://media.istockphoto.com/id/1360048537/video/futuristic-animated-concept-big-data-center-chief-technology-officer-using-laptop-standing-in.mp4?s=mp4-640x640-is&k=21&c=qfseEZiJxfYc26fY6oD2hRZp4stCUQAHBxFgbPJCrKc=
+
+3. https://media.istockphoto.com/id/1360048537/video/futuristic-animated-concept-big-data-center-chief-technology-officer-using-laptop-standing-in.mp4?s=mp4-640x640-is&k=10&c=qfseEZiJxfYc26fY6oD2hRZp4stCUQAHBxFgbPJCrKc=
+
+4. https://media.istockphoto.com/id/1360048537/video/futuristic-animated-concept-big-data-center-chief-technology-officer-using-laptop-standing-in.mp4?s=mp4-480x480-is&k=20&c=qfseEZiJxfYc26fY6oD2hRZp4stCUQAHBxFgbPJCrKc=
+
+5. https://media.istockphoto.com/id/1360048537/video/futuristic-animated-concept-big-data-center-chief-technology-officer-using-laptop-standing-in.mp4?s=mp4-720x720-is&k=20&c=qfseEZiJxfYc26fY6oD2hRZp4stCUQAHBxFgbPJCrKc=
+
+Parameter explanations:
+- s = size/format (mp4-640x640-is, mp4-480x480-is, mp4-720x720-is)
+- k = watermark key/type (20 = center?, 21/10 = different positions?)
+- c = content signature/hash
+- pos = position (theoretical parameter for top-left)
